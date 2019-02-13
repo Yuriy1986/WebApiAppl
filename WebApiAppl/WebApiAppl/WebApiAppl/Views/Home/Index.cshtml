@@ -1,0 +1,182 @@
+﻿@model WebApiAppl.Models.User
+<div id="listOfUsers"></div>
+<div class="text-center">
+    <button onclick="OpenCloseAddForm()" id="openCloseForm" class="btn btn-success">Add user</button>
+</div>
+<div id="addUser">
+    <form id="idFormAddUser">
+        <div class="form-horizontal">
+            <hr />
+            <div class="form-group">
+                @Html.Label("idName", "Name", htmlAttributes: new { @class = "control-label col-md-2" })
+                <div class="col-md-10">
+                    @Html.EditorFor(model => model.Name, new { htmlAttributes = new { @class = "form-control", @id = "idName" } })
+                    @Html.ValidationMessageFor(model => model.Name, "", new { @class = "text-danger", @id = "idValidationName" })
+                </div>
+            </div>
+            <div class="form-group">
+                @Html.Label("idSecondName", "Second name", htmlAttributes: new { @class = "control-label col-md-2" })
+                <div class="col-md-10">
+                    @Html.EditorFor(model => model.SecondName, new { htmlAttributes = new { @class = "form-control", @id = "idSecondName" } })
+                    @Html.ValidationMessageFor(model => model.SecondName, "", new { @class = "text-danger", @id = "idValidationSecondName" })
+                </div>
+            </div>
+            <div class="form-group">
+                @Html.Label("idEmail", "Email", htmlAttributes: new { @class = "control-label col-md-2" })
+                <div class="col-md-10">
+                    @Html.EditorFor(model => model.Email, new { htmlAttributes = new { @class = "form-control", @id = "idEmail" } })
+                    @Html.ValidationMessageFor(model => model.Email, "", new { @class = "text-danger", @id = "idValidationEmail" })
+                </div>
+            </div>
+            <div class="form-group">
+                @Html.Label("idPhoneNumber", "Phone number", htmlAttributes: new { @class = "control-label col-md-2" })
+                <div class="col-md-10">
+                    @Html.EditorFor(model => model.PhoneNumber, new { htmlAttributes = new { @class = "form-control", @id = "idPhoneNumber",
+                   @placeholder = "(***) ***-**-** or (***) **-**-**" } })
+                    @Html.ValidationMessageFor(model => model.PhoneNumber, "", new { @class = "text-danger", @id = "idValidationPhoneNumber" })
+                </div>
+            </div>
+            <div class="form-group">
+                @Html.Label("idAddress", "Address", htmlAttributes: new { @class = "control-label col-md-2" })
+                <div class="col-md-10">
+                    @Html.EditorFor(model => model.Address, new { htmlAttributes = new { @class = "form-control", @id = "idAddress" } })
+                    @Html.ValidationMessageFor(model => model.Address, "", new { @class = "text-danger", @id = "idValidationAddress" })
+                </div>
+            </div>
+            <div class="form-group">
+                @Html.Label("idPosition", "Position", htmlAttributes: new { @class = "control-label col-md-2" })
+                <div class="col-md-10">
+                    <select class="form-control" name="PositionId" id="idPosition" required></select>
+                    @Html.ValidationMessageFor(model => model.PositionId, "", new { @class = "text-danger", @id = "idValidationPosition" })
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="col-md-offset-2 col-md-10">
+                    <input type="submit" class="btn btn-toolbar" value="Add user" />
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section scripts
+{
+    @Scripts.Render("~/bundles/jqueryval")
+    <script type="text/javascript">
+        $(document).ready(function () {
+            GetUsers();
+        });
+        //////////////////////////////////////////////////////////////////////////////////
+        $.validator.messages.required = "Position is required.";
+        $('#idFormAddUser').submit(function (e) {
+            $("#idName").val($("#idName").val().trim());
+            $("#idSecondName").val($("#idSecondName").val().trim());
+            $("#idAddress").val($("#idAddress").val().trim());
+            e.preventDefault();
+            setTimeout('AddUser()', 50);
+        });
+
+
+        function AddUser() {
+            if ($('span').text() === '')
+            {
+                $.post({
+                    url: "api/Users",
+                    data:
+                    {
+                        PositionId: $("#idPosition").val(),
+                        Name: $("#idName").val(),
+                        SecondName: $("#idSecondName").val(),
+                        Email: $("#idEmail").val(),
+                        PhoneNumber: $("#idPhoneNumber").val(),
+                        Address: $("#idAddress").val()
+                    },
+                    success: function () {
+                        $("#openCloseForm").click();
+                        GetUsers();
+                    },
+                    error: function (errorText) {
+                        var errors = errorText.responseJSON.ModelState;
+
+                        if (errors["user.PositionId"] !== undefined)
+                            $("#idValidationPosition").text("Position is required.");
+                        if (errors["user.Name"] !== undefined)
+                            $("#idValidationName").text(errors["user.Name"]);
+                        if (errors["user.SecondName"] !== undefined)
+                            $("#idValidationSecondName").text(errors["user.SecondName"]);
+                        if (errors["user.Email"] !== undefined)
+                            $("#idValidationEmail").text(errors["user.Email"]);
+                        if (errors["user.PhoneNumber"] !== undefined)
+                            $("#idValidationPhoneNumber").text(errors["user.PhoneNumber"]);
+                        if (errors["user.Address"] !== undefined)
+                            $("#idValidationAddress").text(errors["user.Address"]);
+                    }
+                });
+
+            }
+        }
+
+        function GetUsers() {
+            $.get({
+                url: "api/Users",
+                success: function (data) {
+                    FillListOfUsers(data);
+                },
+                error: function () {
+                    alert("Error. Reload page.");
+                }
+            });
+        };
+
+        function FillListOfUsers(data) {
+            var usersAll = data.UsersAll;
+            var positionAll = data.PositionAll;
+
+            var positions = '<option></option>';
+            $.each(positionAll, function (index, position) {
+                positions += '<option value=' + position.Id + '>' + position.PositionName + '</option>';
+
+            });
+            $("#idPosition").html(positions);
+
+            if (usersAll === null) {
+                $("#listOfUsers").html('<h2>No users in database</h2>');
+                return;
+            }
+            var result = '<table class="table table-hover"><thead><tr><th>Name</th><th>Second Name</th><th>Email</th><th>Phone Number</th><th>Address</th><th>Get position</th></tr></thead><tbody>';
+            $.each(usersAll, function (index, user) {
+                result += '<tr><td>' + user.Name + '</td><td>' + user.SecondName + '</td><td>' + user.Email + '</td><td>' + user.PhoneNumber + '</td><td>'
+                    + user.Address + '</td><td id="position' + user.Id + '"><button onclick="GetPosition(' + user.Id +
+                    ')" class="glyphicon glyphicon-search btn-xs btn-primary btn-block"></button></td></tr>'
+            });
+            result += '</tbody></table>';
+            $("#listOfUsers").html(result);
+        };
+
+        function GetPosition(idUser) {
+            $.get({
+                url: "api/Users/" + idUser,
+                success: function (data) {
+                    $("#position" + idUser).html(data);
+                },
+                error: function () {
+                    alert("Error. Reload page.");
+                }
+            });
+        };
+
+        function OpenCloseAddForm() {
+            if ($("#openCloseForm").text() === "Add user") {
+                $("#openCloseForm").text("Close");
+                $("#addUser").css("display", "block");
+                window.scroll(0, $("body").height());
+            }
+            else {
+                $("#openCloseForm").text("Add user");
+                $("#addUser").css("display", "none");
+                $('#idFormAddUser')[0].reset();
+                $('span').text("");
+            }
+        };
+    </script>
+}
